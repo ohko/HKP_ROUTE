@@ -15,6 +15,7 @@ if (!defined('COOKIE_DOMAIN')) {
     define('COOKIE_DOMAIN', $domain);
 }
 
+defined('DEBUG') || define('DEBUG', true);
 defined('ROUTE_LOG_FILE') || define('ROUTE_LOG_FILE', '/tmp/hk_route.log');
 defined('PATH_ROOT') || define('PATH_ROOT', __DIR__);
 defined('PATH_ACTION') || define('PATH_ACTION', PATH_ROOT . '/action');

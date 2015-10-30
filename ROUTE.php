@@ -226,7 +226,7 @@ class ROUTE extends \Exception
         }
 
         if (is_writeable(ROUTE_LOG_FILE) && !self::$cli) {
-            $log = "[$no] $msg @ $file($line)" . json_encode($arr) . "\n";
+            $log = "[" . date('Y-m-d H:i:s') . "] [$no] $msg @ $file($line) " . json_encode($arr) . "\n";
             file_put_contents(ROUTE_LOG_FILE, $log, FILE_APPEND);
         } else {
             echo json_encode([

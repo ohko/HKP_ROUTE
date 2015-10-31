@@ -148,6 +148,7 @@ class ROUTE extends \Exception
                 self::inc($file);
             }
         }
+        return false;
     }
 
     /**
@@ -193,15 +194,9 @@ class ROUTE extends \Exception
         exit;
     }
 
-    /**
-     * 输出JSON数据
-     *
-     * @return mixed
-     */
-    static public function outJsonObject($json)
+    static public function retJson($no, $data)
     {
-        echo json_encode($json);
-        exit;
+        return ['no' => $no, 'data' => $data];
     }
 
     static public function myErrorHandler()

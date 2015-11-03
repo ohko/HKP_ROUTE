@@ -25,6 +25,7 @@ defined('PATH_LIB') || define('PATH_LIB', PATH_ROOT . '/lib');
 defined('AUTH_HOOK') || define('AUTH_HOOK', null);
 
 error_reporting(0);
+ini_set('date.timezone', 'Asia/Shanghai');
 
 class ROUTE extends \Exception
 {

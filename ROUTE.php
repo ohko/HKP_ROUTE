@@ -1,7 +1,10 @@
 <?php
 namespace HKP;
 
+# HTTP_HOST
 defined('HTTP_HOST') || define('HTTP_HOST', (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost'));
+
+# URL_ROOT
 if (isset($_SERVER['PHP_SELF'])) {
     $_SELF = dirname($_SERVER['PHP_SELF']);
     if (substr($_SELF, -1) == '/' || substr($_SELF, -1) == '\\') $_SELF = substr($_SELF, 0, -1);
@@ -9,11 +12,16 @@ if (isset($_SERVER['PHP_SELF'])) {
 } else {
     defined('URL_ROOT') || define('URL_ROOT', 'http://' . HTTP_HOST);
 }
+
+# COOKIE_DOMAIN
 if (!defined('COOKIE_DOMAIN')) {
     $domain = explode('.', HTTP_HOST);
     $domain = (count($domain) == 1) ? $domain[0] : implode('.', array_slice($domain, -2));
     define('COOKIE_DOMAIN', $domain);
 }
+
+# auth verify hook function
+defined('AUTH_HOOK') || define('AUTH_HOOK', null);
 
 defined('DEBUG') || define('DEBUG', true);
 defined('ROUTE_LOG_FILE') || define('ROUTE_LOG_FILE', '/tmp/hk_route.log');
@@ -21,8 +29,6 @@ defined('PATH_ROOT') || define('PATH_ROOT', __DIR__);
 defined('PATH_ACTION') || define('PATH_ACTION', PATH_ROOT . '/action');
 defined('PATH_VIEW') || define('PATH_VIEW', PATH_ROOT . '/view');
 defined('PATH_LIB') || define('PATH_LIB', PATH_ROOT . '/lib');
-// auth verify hook function
-defined('AUTH_HOOK') || define('AUTH_HOOK', null);
 
 error_reporting(0);
 ini_set('date.timezone', 'Asia/Shanghai');
@@ -43,21 +49,28 @@ class ROUTE extends \Exception
      */
     static protected $loadFiles = [];
 
-    static protected $mvc = [];
-    static protected $console = [];
+    static protected $__ACTION__ = 'index';
+    static protected $__FUNCTION__ = 'index';
 
     /**
      * 开始执行
      */
     static public function run()
     {
-        register_shutdown_function(array(get_called_class(), 'check_for_fatal'));
-        set_error_handler(array(get_called_class(), 'myErrorHandler'));
+        register_shutdown_function(array('\HKP\ErrorMsg', 'check_for_fatal'));
+        set_error_handler(array('\HKP\ErrorMsg', 'myErrorHandler'));
         spl_autoload_register(get_called_class() . '::autoLoad');
 
         // cli
         self::$cli = (php_sapi_name() == 'cli');
-        if (self::$cli) self::cliRun();
+        if (self::$cli) {
+            global $argv;
+            $_SERVER = [
+                'REMOTE_ADDR' => '127.0.0.1',
+                'SCRIPT_NAME' => __FILE__,
+                'REQUEST_URI' => str_replace('/' . basename(__FILE__), '', __FILE__) . $argv[1],
+            ];
+        }
 
         # 普通请求
         // [SCRIPT_NAME] => /a/b/index.php
@@ -72,12 +85,12 @@ class ROUTE extends \Exception
         try {
             call_user_func_array(get_called_class() . '::dispatch', $str);
         } catch (\PDOException $e) {
-            self::outErr($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine(), func_get_args());
+            ErrorMsg::outErr($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine(), func_get_args());
         } catch (ErrorMsg $e) {
             self::outJson($e->getCode(), $e->getMessage());
         } catch (\Exception $e) {
             $no = $e->getCode() == 0 ? 400 : $e->getCode();
-            self::outErr($no, $e->getMessage(), $e->getFile(), $e->getLine(), func_get_args());
+            ErrorMsg::outErr($no, $e->getMessage(), $e->getFile(), $e->getLine(), func_get_args());
         }
     }
 
@@ -94,7 +107,8 @@ class ROUTE extends \Exception
         $args = func_get_args();
         array_splice($args, 0, 2);
         $params = $args;
-        self::$mvc = [$action, $fun];
+        self::$__ACTION__ = $action;
+        self::$__FUNCTION__ = $fun;
 
         // auth hook
         if (defined('AUTH_HOOK') && AUTH_HOOK && !self::$cli) {
@@ -127,11 +141,6 @@ class ROUTE extends \Exception
         return strtolower(preg_replace('/([A-Z])/', '_$1', lcfirst($str)));
     }
 
-    /**
-     * 内部引用文件
-     *
-     * @param $clsName
-     */
     static public function autoLoad($clsName)
     {
         if (substr($clsName, '-3') == 'Lib') {
@@ -159,22 +168,14 @@ class ROUTE extends \Exception
      *
      * @return array|bool|mixed
      */
-    static public function inc($file)
+    static protected function inc($file)
     {
         if (isset(self::$loadFiles[$file])) return true;
         self::$loadFiles[$file] = 1;
         return require $file;
     }
 
-    static private function cliRun()
-    {
-        global $argv;
-        $_SERVER = [
-            'REMOTE_ADDR' => '127.0.0.1',
-            'SCRIPT_NAME' => __FILE__,
-            'REQUEST_URI' => str_replace('/' . basename(__FILE__), '', __FILE__) . $argv[1],
-        ];
-    }
+    ##### OUTPUT #####
 
     /**
      * 输出JSON数据
@@ -200,6 +201,38 @@ class ROUTE extends \Exception
         return ['no' => $no, 'data' => $data];
     }
 
+    /**
+     * 渲染模版
+     *
+     * @param string $tpl      模版相对路径
+     * @param array  $data     模版需要的数据
+     * @param string $tplFrame 模版框架
+     *
+     * @return bool
+     */
+    static public function render($tpl, $data = [], $tplFrame = 'frame_default.php')
+    {
+        extract($data);
+        if ($tpl[0] != '/') $tpl = '/' . $tpl;
+        $_TPL_TPL_ = PATH_VIEW . $tpl;
+        $_FRAME_TPL_ = PATH_VIEW . '/public/' . $tplFrame;
+        if (file_exists($_FRAME_TPL_)) require $_FRAME_TPL_;
+        else if (file_exists($_TPL_TPL_)) require $_TPL_TPL_;
+        else die('Not found template file: ' . $tpl);
+        return true;
+    }
+
+    static public function redirect($url, $absolute = false)
+    {
+        $url = ($absolute ? '' : URL_ROOT) . $url;
+        header('Location: ' . $url);
+        echo "<script>location.href='{$url}';</script>";
+        exit;
+    }
+}
+
+class ErrorMsg extends \Exception
+{
     static public function myErrorHandler()
     {
         call_user_func_array(get_called_class() . '::outErr', func_get_args());

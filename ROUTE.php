@@ -4,7 +4,7 @@ namespace HKP;
 defined('HTTP_HOST') || define('HTTP_HOST', (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost'));
 if (isset($_SERVER['PHP_SELF'])) {
     $_SELF = dirname($_SERVER['PHP_SELF']);
-    $_SELF = substr($_SELF, -1) == '/' ? substr($_SELF, 0, -1) : $_SELF;
+    if (substr($_SELF, -1) == '/' || substr($_SELF, -1) == '\\') $_SELF = substr($_SELF, 0, -1);
     defined('URL_ROOT') || define('URL_ROOT', 'http://' . HTTP_HOST . $_SELF);
 } else {
     defined('URL_ROOT') || define('URL_ROOT', 'http://' . HTTP_HOST);

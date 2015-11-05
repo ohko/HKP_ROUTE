@@ -254,7 +254,7 @@ class ErrorMsg extends \Exception
             chmod(ROUTE_LOG_FILE, 0777);
         }
 
-        if (is_writeable(ROUTE_LOG_FILE) && !self::$cli) {
+        if (is_writeable(ROUTE_LOG_FILE) && !ROUTE::$cli) {
             $log = "[" . date('Y-m-d H:i:s') . "] [$no] $msg @ $file($line) " . json_encode($arr) . "\n";
             file_put_contents(ROUTE_LOG_FILE, $log, FILE_APPEND);
         } else {

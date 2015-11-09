@@ -49,8 +49,8 @@ class ROUTE extends \Exception
      */
     static protected $loadFiles = [];
 
-    static protected $__ACTION__ = 'index';
-    static protected $__FUNCTION__ = 'index';
+    static protected $_ACTION_ = 'index';
+    static protected $_FUNCTION_ = 'index';
 
     /**
      * 开始执行
@@ -107,8 +107,8 @@ class ROUTE extends \Exception
         $args = func_get_args();
         array_splice($args, 0, 2);
         $params = $args;
-        self::$__ACTION__ = $action;
-        self::$__FUNCTION__ = $fun;
+        self::$_ACTION_ = $action;
+        self::$_FUNCTION_ = $fun;
 
         // auth hook
         if (defined('AUTH_HOOK') && AUTH_HOOK && !self::$cli) {

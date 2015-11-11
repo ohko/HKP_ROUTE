@@ -87,7 +87,8 @@ class ROUTE extends \Exception
         } catch (\PDOException $e) {
             ErrorMsg::outErr($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine(), func_get_args());
         } catch (ErrorMsg $e) {
-            self::outJson($e->getCode(), $e->getMessage());
+            ErrorMsg::outErr($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine(), func_get_args());
+            //self::outJson($e->getCode(), $e->getMessage());
         } catch (\Exception $e) {
             $no = $e->getCode() == 0 ? 400 : $e->getCode();
             ErrorMsg::outErr($no, $e->getMessage(), $e->getFile(), $e->getLine(), func_get_args());
@@ -249,6 +250,10 @@ class ErrorMsg extends \Exception
 
     static public function outErr($no, $msg, $file, $line, $arr = [])
     {
+        if (defined('LOG_HOOK')) {
+            call_user_func_array(LOG_HOOK, func_get_args());
+        }
+
         if (!file_exists(ROUTE_LOG_FILE)) {
             touch(ROUTE_LOG_FILE);
             chmod(ROUTE_LOG_FILE, 0777);

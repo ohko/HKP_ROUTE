@@ -77,7 +77,9 @@ class ROUTE extends \Exception
         // [REQUEST_URI] => /a/b/c/d
         $str = substr($_SERVER['REQUEST_URI'], strlen(dirname($_SERVER['SCRIPT_NAME'])));
         if ($str[0] == '/') $str = substr($str, 1);
-        $str = parse_url($str)['path'];
+        $str = parse_url($str);
+        if (isset($str['path'])) $str = $str['path'];
+        else $str = '';
         if (strlen($str) > 0 && $str[strlen($str) - 1] == '/') $str = substr($str, 0, -1);
         $str = explode('/', $str);
         if (isset($str[0]) && $str[0] == '') unset($str[0]);
